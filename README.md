@@ -15,7 +15,7 @@ Piano Judges employs several audio encoders for solo piano recording understandi
 
 Technique Audio, part of the PID dataset released by Piano Judges. 
 
-1. download the data through this link provided by the author 
+1. download the data through this link provided by the author : https://drive.google.com/drive/folders/1IuV5Vo6Nc5GE4KYbfanv8B_AzYu02NYI
 
 ## Model
 ![Alt text](model_architecture.png)
