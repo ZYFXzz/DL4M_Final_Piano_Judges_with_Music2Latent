@@ -3,6 +3,7 @@ import math
 import logging
 import torch
 import torchaudio
+import rearrange, reduce, repeat
 from torch import Tensor
 from timm.models.layers import to_2tuple
 from torch import nn
