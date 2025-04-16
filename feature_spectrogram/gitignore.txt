@@ -1,0 +1,6 @@
+# Ignore audio and data
+*.pt
+*.wav
+data/
+spectrogram_data/
+
