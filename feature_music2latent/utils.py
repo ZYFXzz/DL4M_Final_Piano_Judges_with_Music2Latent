@@ -21,6 +21,191 @@ import pandas as pd
 
 
 ## technique data loader objects is copied from the original piano judge repo, with some modifications
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import pytorch_lightning as pl
+import torchmetrics
+
+
+class TechniqueClassifier(pl.LightningModule):
+    """
+    A multi-label classifier for piano technique detection (7 classes).
+    Based on the PianoJudge paper approach for technique identification.
+    - Tracks metrics for multi-label classification including mAP and AUC
+    - Supports both multi-label and single-label prediction modes
+    - Uses Adam optimizer with ReduceLROnPlateau scheduler
+    """
+
+    def __init__(self, input_dim=768, num_classes=7, learning_rate=1e-3, threshold=0.5):
+        super().__init__()
+        self.learning_rate = learning_rate
+        self.threshold = threshold
+        self.save_hyperparameters()
+
+        # Fully connected layers for classification
+        self.mlp = nn.Sequential(
+            nn.Linear(input_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, num_classes),  # Output layer (logits)
+        )
+
+        # Initialize metrics
+        self.train_auroc = torchmetrics.AUROC(task="multilabel", num_labels=num_classes)
+        self.val_auroc = torchmetrics.AUROC(task="multilabel", num_labels=num_classes)
+        self.test_auroc = torchmetrics.AUROC(task="multilabel", num_labels=num_classes)
+
+        self.train_map = torchmetrics.AveragePrecision(
+            task="multilabel", num_labels=num_classes
+        )
+        self.val_map = torchmetrics.AveragePrecision(
+            task="multilabel", num_labels=num_classes
+        )
+        self.test_map = torchmetrics.AveragePrecision(
+            task="multilabel", num_labels=num_classes
+        )
+
+    def forward(self, x):
+        return self.mlp(x)  # Return logits
+
+    def training_step(self, batch, batch_idx):
+        inputs, labels = batch
+        logits = self(inputs)  # Forward pass
+        loss = F.binary_cross_entropy_with_logits(logits, labels)
+
+        # Calculate metrics
+        probs = torch.sigmoid(logits)
+        preds = (probs > self.threshold).float()
+
+        # Compute accuracy (all binary predictions match)
+        acc = (preds == labels).all(dim=1).float().mean()
+
+        # Update AUC and mAP metrics
+        self.train_auroc(probs, labels.int())
+        self.train_map(probs, labels.int())
+
+        # Log metrics
+        self.log("train_loss", loss, prog_bar=True)
+        self.log("train_acc", acc, prog_bar=True)
+
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        inputs, labels = batch
+        logits = self(inputs)
+        loss = F.binary_cross_entropy_with_logits(logits, labels)
+
+        # Calculate metrics
+        probs = torch.sigmoid(logits)
+        preds = (probs > self.threshold).float()
+
+        # Compute accuracy (all binary predictions match)
+        acc = (preds == labels).all(dim=1).float().mean()
+
+        # Update AUC and mAP metrics
+        self.val_auroc(probs, labels.int())
+        self.val_map(probs, labels.int())
+
+        # Log metrics
+        self.log("val_loss", loss, prog_bar=True)
+        self.log("val_acc", acc, prog_bar=True)
+
+        return loss
+
+    def test_step(self, batch, batch_idx):
+        inputs, labels = batch
+        logits = self(inputs)
+        loss = F.binary_cross_entropy_with_logits(logits, labels)
+
+        # Calculate metrics
+        probs = torch.sigmoid(logits)
+        preds = (probs > self.threshold).float()
+
+        # Compute accuracy (all binary predictions match)
+        acc = (preds == labels).all(dim=1).float().mean()
+
+        # Update AUC and mAP metrics
+        self.test_auroc(probs, labels.int())
+        self.test_map(probs, labels.int())
+
+        # Log metrics
+        self.log("test_loss", loss, prog_bar=True)
+        self.log("test_acc", acc, prog_bar=True)
+
+        return loss
+
+    def on_train_epoch_end(self):
+        # Log metrics at the end of each epoch
+        self.log("train_auroc", self.train_auroc.compute(), prog_bar=True)
+        self.log("train_map", self.train_map.compute(), prog_bar=True)
+
+    def on_validation_epoch_end(self):
+        # Log metrics at the end of each epoch
+        self.log("val_auroc", self.val_auroc.compute(), prog_bar=True)
+        self.log("val_map", self.val_map.compute(), prog_bar=True)
+
+    def on_test_epoch_end(self):
+        # Log metrics at the end of each epoch
+        self.log("test_auroc", self.test_auroc.compute(), prog_bar=True)
+        self.log("test_map", self.test_map.compute(), prog_bar=True)
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            mode="min",
+            patience=3,
+            verbose=True,
+        )
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": scheduler,
+            "monitor": "val_loss",
+        }
+
+    def predict_step(self, batch, batch_idx):
+        # Handle both cases: batch as a tuple/list or as a direct tensor
+        if isinstance(batch, (tuple, list)):
+            inputs = batch[0]
+        else:
+            inputs = batch
+
+        # Make sure inputs is a tensor (not a list)
+        if not isinstance(inputs, torch.Tensor):
+            raise TypeError(f"Expected inputs to be a tensor, got {type(inputs)}")
+
+        # Move inputs to the same device as the model parameters
+        device = next(self.parameters()).device
+        inputs = inputs.to(device)
+
+        # Forward pass
+        logits = self(inputs)
+        probs = torch.sigmoid(logits)
+        preds = (probs > self.threshold).float()
+
+        return {"logits": logits, "probabilities": probs, "predictions": preds}
+
+
+# Helper function to process input data
+def process_audio_embeddings(embedding, max_length=30):
+    """
+    Process audio embeddings to ensure consistent shape
+    Args:
+        embedding: Audio embedding from encoder
+        max_length: Maximum number of segments to include (default 30 = 5 minutes)
+    """
+    # Pad or truncate embedding to desired length
+    if embedding.shape[0] > max_length:
+        return embedding[:max_length]
+    elif embedding.shape[0] < max_length:
+        padding = torch.zeros(
+            (max_length - embedding.shape[0], embedding.shape[1], embedding.shape[2])
+        )
+        return torch.cat([embedding, padding], dim=0)
+    else:
+        return embedding
 
 
 class TechniqueDataloader:
@@ -291,3 +476,105 @@ def temporal_average(features):
     """
     # print(features)
     return torch.mean(features, dim=1)
+
+
+## classifier
+class GenreClassifier(pl.LightningModule):
+    """
+    A convolutional neural network for genre classification (10 classes).
+    Suitable for probing tasks, works with input dimensions of (8192, 320).
+    - Tracks loss and accuracy for train/val/test.
+    - Uses Adam optimizer with ReduceLROnPlateau scheduler.
+    """
+
+    def __init__(self, input_dim=8192, num_classes=10, learning_rate=1e-3):
+        super().__init__()
+        self.learning_rate = learning_rate
+
+        # Fully connected layers for classification
+        self.mlp = nn.Sequential(
+            nn.Linear(input_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, num_classes),  # Output layer (logits)
+        )
+
+    def forward(self, x):
+        x = self.mlp(x)  # Apply fully connected layers
+        return x
+
+    def training_step(self, batch, batch_idx):
+        inputs, labels = batch
+        logits = self(inputs)  # Forward pass
+        loss = F.cross_entropy(logits, labels)
+
+        # Calculate accuracy
+        preds = torch.argmax(logits, dim=1)
+        acc = (preds == labels).float().mean()
+
+        # Log metrics
+        self.log("train_loss", loss, prog_bar=True)
+        self.log("train_acc", acc, prog_bar=True)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        inputs, labels = batch
+        logits = self(inputs)
+        loss = F.cross_entropy(logits, labels)
+
+        preds = torch.argmax(logits, dim=1)
+        acc = (preds == labels).float().mean()
+
+        # Log metrics
+        self.log("val_loss", loss, prog_bar=True)
+        self.log("val_acc", acc, prog_bar=True)
+        return loss
+
+    def test_step(self, batch, batch_idx):
+        inputs, labels = batch
+        logits = self(inputs)
+        loss = F.cross_entropy(logits, labels)
+
+        preds = torch.argmax(logits, dim=1)
+        acc = (preds == labels).float().mean()
+
+        # Log metrics
+        self.log("test_loss", loss, prog_bar=True)
+        self.log("test_acc", acc, prog_bar=True)
+        return loss
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            mode="min",
+            patience=3,
+            verbose=True,
+        )
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": scheduler,
+            "monitor": "val_loss",
+        }
+
+
+# 3. Prepare DataLoader
+def create_dataloader(features, labels, batch_size=32):
+    """
+    Create a PyTorch DataLoader from features and labels.
+    Parameters
+    ----------
+    features : torch.Tensor
+        The input features tensor.
+    labels : torch.Tensor
+        The labels tensor.
+    batch_size : int, optional
+        Batch size for the DataLoader (default: 32).
+    Returns
+    -------
+    DataLoader
+        A PyTorch DataLoader object.
+    """
+    dataset = TensorDataset(features, labels)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=False)
