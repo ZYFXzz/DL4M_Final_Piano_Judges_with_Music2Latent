@@ -1,0 +1,4 @@
+input_dim: 8192
+num_classes: 7
+learning_rate: 0.001
+threshold: 0.5
