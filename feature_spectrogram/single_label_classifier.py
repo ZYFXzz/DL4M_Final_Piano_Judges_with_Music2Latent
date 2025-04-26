@@ -237,7 +237,7 @@ class SingleLabelClassifier(pl.LightningModule):
         y_hat = self(x)
         y_hat = y_hat.float()  # Ensure y_hat is float for CrossEntropyLoss
         loss = self.criterion(y_hat, y)
-        self.log("train_loss", loss)
+        self.log("train_loss", loss, prog_bar=True)
 
         # Free unused GPU memory
         torch.cuda.empty_cache()
@@ -256,8 +256,8 @@ class SingleLabelClassifier(pl.LightningModule):
         self.recall(y_hat, y)
 
         # Log metrics
-        self.log("val_loss", loss)
-        self.log("val_accuracy", self.accuracy)
+        self.log("val_loss", loss,prog_bar=True)
+        self.log("val_accuracy", self.accuracy,prog_bar=True)
         self.log("val_f1", self.f1)
         self.log("val_precision", self.precision)
         self.log("val_recall", self.recall)

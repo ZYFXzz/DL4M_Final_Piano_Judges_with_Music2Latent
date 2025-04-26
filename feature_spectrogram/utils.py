@@ -46,23 +46,43 @@ LABEL_COLUMNS = [
     "Staccato",
 ]
 
+N_MELS = 128  # 64 - 128
+HOP_LENGTH = 160
+
 
 def filter_single_label_tracks(dataloader):
-    filtered_tracks = []
+    filtered_metadata = []
+
     for idx in range(len(dataloader)):
         data = dataloader[idx]
         label = data["label"]
         if sum(label) == 1:  # Keep only single-labeled tracks
-            filtered_tracks.append(data)
-    return filtered_tracks
+            filtered_metadata.append(dataloader.metadata.iloc[idx])
+
+    # Create a new TechniqueDataloader instance with the filtered metadata
+    filtered_dataloader = TechniqueDataloader(
+        mode=dataloader.mode,  # Keep the same mode
+        split_ratio=1.0,  # Use all filtered data
+        rs=None,  # Random state isn't needed here
+        label=dataloader.label,  # Keep the same label type
+        technique_dir=dataloader.technique_dir,
+    )
+
+    # Replace the metadata in the new dataloader instance
+    filtered_dataloader.metadata = pd.DataFrame(filtered_metadata)
+
+    return filtered_dataloader
 
 
-def plot_label_distribution(filtered_tracks, label_columns, title):
+def plot_label_distribution(dataloader, label_columns, title):
     # Count labels
+    from collections import Counter
+
     label_totals = Counter()
-    for track in filtered_tracks:
+    for idx in range(len(dataloader)):
+        data = dataloader[idx]
         label_totals.update(
-            {label: value for label, value in zip(label_columns, track["label"])}
+            {label: value for label, value in zip(label_columns, data["label"])}
         )
 
     # Prepare counts in order of label_columns
@@ -117,7 +137,7 @@ def display_track_spec_audio(track, label_columns=LABEL_COLUMNS):
 
     # Compute the mel spectrogram
     mel_spectrogram = librosa.feature.melspectrogram(
-        y=audio, sr=sr, n_mels=64, hop_length=512
+        y=audio, sr=sr, n_mels=N_MELS, hop_length=512
     )
     mel_spectrogram = librosa.power_to_db(mel_spectrogram)
 
@@ -373,16 +393,18 @@ def get_spectrogram_and_labels(dataloader, augment=False):
     labels = []
     features = []
     # target sampling rate for spectrogram, set to 24000
-    target_sr = 22050
+    target_sr = 24000
 
     # Compute parameters for segmentation
     segment_duration = 10  # 10 seconds per segment
-    total_duration = 280  # 5 minutes (300 seconds) total, 280 to reduce tensor dim, audio mostly around 270s
+    total_duration = 60  # 5 minutes (300 seconds) total, 280 to reduce tensor dim, audio mostly around 270s
     num_segments = total_duration // segment_duration  # 30 segments
 
     # Frame rate is 150 Hz (based on hop_length of 160 samples at 24kHz)
     # 10 seconds at 150 Hz = 1500 frames
-    frames_per_segment = 1500
+    hop_length = HOP_LENGTH
+    # frames_per_segment = target_sr // hop_length
+    frames_per_segment = int(segment_duration * target_sr / hop_length)
 
     # Define augmentation strategies
     augmentation_strategies = [
@@ -444,10 +466,11 @@ def get_spectrogram_and_labels(dataloader, augment=False):
             )
             features.append(processed_audio)
             labels.append(label)
-            # break  # debugging purpose, remove this line to process all tracks
+           
 
             # Apply augmentations if requested
             if augment:
+
                 for i, strategy in enumerate(augmentation_strategies):
                     try:
                         print(f"Applying augmentation strategy {i+1}")
@@ -470,7 +493,7 @@ def get_spectrogram_and_labels(dataloader, augment=False):
                     except Exception as e:
                         print(f"Error during augmentation {i+1}: {e}")
                         continue
-
+            # break
         except Exception as e:
             print(f"Error processing {audio_path}: {e}")
             continue
@@ -496,6 +519,7 @@ def get_spectrogram_and_labels(dataloader, augment=False):
         labels=labels_tensor,
         split_name=dataloader.mode,
         folder_name="spectrogram",
+        augment=augment,
     )
 
     return features_tensor, labels_tensor
@@ -525,12 +549,13 @@ def process_audio(
     """Process audio: pad/truncate, segment, and compute spectrograms"""
     # First pad the audio to exactly 5 minutes (300 seconds)
     target_length = total_duration * sr  # 5 minutes (300s) of audio
+    print(f"Target length in samples: {target_length}")
     if len(audio) < target_length:
-        # If shorter than 5 minutes, pad with zeros
+        # If shorter than required length, pad with zeros
         padding = target_length - len(audio)
         audio = np.pad(audio, (0, padding), mode="constant")
     else:
-        # If longer than 5 minutes, truncate
+        # If longer than required length, truncate
         audio = audio[:target_length]
 
     # Segment the padded audio into 30 segments of 10 seconds each
@@ -559,7 +584,7 @@ def process_audio(
 
 
 def compute_mel_spectrogram(
-    y, sr, n_fft=400, hop_length=150, n_mels=64, frames_per_segment=1500
+    y, sr, n_fft=400, hop_length=HOP_LENGTH, n_mels=N_MELS, frames_per_segment=1500
 ):
     """
     Compute mel spectrogram for a segment, ensuring consistent output dimensions.
@@ -585,7 +610,7 @@ def compute_mel_spectrogram(
     return mel_db
 
 
-def save_features_and_labels(features, labels, split_name, folder_name):
+def save_features_and_labels(features, labels, split_name, folder_name, augment=False):
     """
     Saves the features and labels as PyTorch files in a structured directory format.
 
@@ -621,6 +646,10 @@ def save_features_and_labels(features, labels, split_name, folder_name):
     """
 
     # Ensure parent directory paths are structured correctly
+
+    if augment:
+        folder_name = folder_name + "_augmented"
+
     project_dir = Path.cwd().parents[0]
     print(f"Project directory: {project_dir}")
     save_dir = project_dir / "computed_features" / folder_name
@@ -635,7 +664,7 @@ def save_features_and_labels(features, labels, split_name, folder_name):
     )
 
 
-def load_features_and_labels(split_name, folder_name="spectrogram"):
+def load_features_and_labels(split_name, folder_name="spectrogram", augment=False):
     """
     Loads the features and labels from PyTorch files in a structured directory format.
 
@@ -662,6 +691,9 @@ def load_features_and_labels(split_name, folder_name="spectrogram"):
     """
     from pathlib import Path
     import torch
+
+    if augment:
+        folder_name = folder_name + "_augmented"
 
     # Ensure parent directory paths are structured correctly
     project_dir = Path.cwd().parents[0]
