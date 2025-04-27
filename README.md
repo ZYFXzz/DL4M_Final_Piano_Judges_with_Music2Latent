@@ -9,17 +9,17 @@ Learning about DL and audio encoders from recent publication at ISMIR-2024.
 1. Piano Judges: https://arxiv.org/abs/2407.04518 
 2. Music2latent: https://arxiv.org/abs/2408.06500
 
-Piano Judges employs several audio encoders for solo piano recording understanding, the project aims to integrate a new audio encoder Music2latent into this pipeline, and test Music2Latent MIR downstream task performance in audio understanding. 
+Piano Judges employs several audio encoders for solo piano recording understanding, the project aims to integrate a new audio encoder Music2Latent into this pipeline, and test Music2Latent MIR downstream task performance in audio understanding. 
 
 ## Dataset
 
 Technique Audio, part of the PID dataset released by Piano Judges. 
 
-1. download the data through this link provided by the author : https://drive.google.com/drive/folders/1IuV5Vo6Nc5GE4KYbfanv8B_AzYu02NYI
+1. Download the data through this link provided by the author : https://drive.google.com/drive/folders/1IuV5Vo6Nc5GE4KYbfanv8B_AzYu02NYI
 
 ## Model
 ![Alt text](model_architecture.png)
-diagram from original Piano Judge Paper
+Diagram from original Piano Judge Paper
 
 Explain the model architecture that your project uses. Be sure to include an architecture diagram here!
 
