@@ -5,7 +5,7 @@ Michael Xie, Nick Boyko, Haochen Wang, Jingkai Hu
 ## Introduction
 
 Learning about DL and audio encoders from recent publication at ISMIR-2024. 
-[Original Paper]: 
+[Original Paper]:
 1. Piano Judges: https://arxiv.org/abs/2407.04518 
 2. Music2Latent: https://arxiv.org/abs/2408.06500
 
@@ -15,7 +15,7 @@ Piano Judges employs several audio encoders for solo piano recording understandi
 
 Technique Audio, part of the PID dataset released by Piano Judges. 
 
-1. Download the data through this link provided by the author : https://drive.google.com/drive/folders/1IuV5Vo6Nc5GE4KYbfanv8B_AzYu02NYI
+1. Download the data through this link provided by the author: https://drive.google.com/drive/folders/1IuV5Vo6Nc5GE4KYbfanv8B_AzYu02NYI
 
 ## Model
 ![Alt text](model_architecture.png)
