@@ -7,7 +7,7 @@ Michael Xie, Nick Boyko, Haochen Wang, Jingkai Hu
 Learning about DL and audio encoders from recent publication at ISMIR-2024. 
 [Original Paper]: 
 1. Piano Judges: https://arxiv.org/abs/2407.04518 
-2. Music2latent: https://arxiv.org/abs/2408.06500
+2. Music2Latent: https://arxiv.org/abs/2408.06500
 
 Piano Judges employs several audio encoders for solo piano recording understanding, the project aims to integrate a new audio encoder Music2Latent into this pipeline, and test Music2Latent MIR downstream task performance in audio understanding. 
 
