@@ -1,0 +1,8 @@
+Technique,Precision,Recall,F1-Score,Support
+Scales,0.2,1.0,0.3333333333333333,8
+Arpeggios,0.0,0.0,0.0,7
+Ornaments,0.0,0.0,0.0,6
+Repeated notes,0.0,0.0,0.0,5
+Double notes,0.0,0.0,0.0,5
+Octave,0.0,0.0,0.0,6
+Staccato,0.0,0.0,0.0,3

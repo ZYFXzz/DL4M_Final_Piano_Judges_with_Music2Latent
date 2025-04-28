@@ -1,0 +1,3 @@
+*.ckpt 
+*./checkpoints
+*./lightning_logs

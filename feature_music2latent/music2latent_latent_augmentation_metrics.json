@@ -1,0 +1,47 @@
+{
+    "Technique": [
+        "Scales",
+        "Arpeggios",
+        "Ornaments",
+        "Repeated notes",
+        "Double notes",
+        "Octave",
+        "Staccato"
+    ],
+    "Precision": [
+        0.2,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+    ],
+    "Recall": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+    ],
+    "F1-Score": [
+        0.3333333333333333,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+    ],
+    "Support": [
+        40,
+        35,
+        30,
+        25,
+        25,
+        30,
+        15
+    ]
+}

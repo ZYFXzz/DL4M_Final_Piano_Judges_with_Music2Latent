@@ -14,3 +14,6 @@ checkpoints/
 # Ignore system files
 .DS_Store
 Thumbs.db
+
+
+tb_logs/
