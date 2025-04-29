@@ -449,43 +449,10 @@ def get_audioMAE_embeddings_and_labels(dataloader, augment=False):
                 augment=augment,
                 augmentation_strategies=augmentation_strategies
             )
-            # process_audio(
-            #     audio_path,
-            #     total_duration,
-            #     segment_duration,
-            #     num_segments,
-            #     frames_per_segment,
-            # )
+
             features.extend(processed_audio)
             labels.extend([label] * len(processed_audio))
            
-
-            # Apply augmentations if requested
-            # if augment:
-
-            #     for i, strategy in enumerate(augmentation_strategies):
-            #         try:
-            #             print(f"Applying augmentation strategy {i+1}")
-            #             # Apply pitch shift and time stretch
-            #             augmented_audio = apply_augmentation(audio, sr, strategy)
-
-            #             # Process the augmented audio
-            #             processed_aug_audio = process_audio(
-            #                 augmented_audio,
-            #                 sr,
-            #                 total_duration,
-            #                 segment_duration,
-            #                 num_segments,
-            #                 frames_per_segment,
-            #             )
-
-            #             # Add to our dataset
-            #             features.append(processed_aug_audio)
-            #             labels.append(label)
-            #         except Exception as e:
-            #             print(f"Error during augmentation {i+1}: {e}")
-            #             continue
-            # break
         except Exception as e:
             print(f"Error processing {audio_path}: {e}")
             continue
@@ -601,54 +568,6 @@ def _process_padded_audio(padded_audio, sr, segment_duration, num_segments, devi
             track_features.append(embedding.squeeze(0).cpu().numpy())
 
     return np.stack(track_features)  # (30, 512, 768)
-
-
-
-# def process_audio(
-#     audio_path,
-#     total_duration,
-#     segment_duration,
-#     num_segments,
-#     frames_per_segment,
-#     device=torch.device("cpu")
-# ):
-#     """Process audio: load, pad/truncate, segment, and compute embeddings"""
-#     # Load audio from path
-#     audio, sr = torchaudio.load(audio_path)
-#     audio = audio.numpy()[0]  # Use first channel if multi-channel
-
-#     # Pad/truncate to target length
-#     target_length = total_duration * sr
-#     if len(audio) < target_length:
-#         audio = np.pad(audio, (0, target_length - len(audio)), mode="constant")
-#     else:
-#         audio = audio[:target_length]
-
-#     # Initialize encoder once
-#     audio_inits = mae_u.init_encoder('audiomae', device, use_trained=True)
-    
-#     track_features = []
-#     segment_samples = segment_duration * sr
-
-#     for i in range(num_segments):
-#         start = i * segment_samples
-#         end = start + segment_samples
-#         segment = audio[start:end]
-
-#         # Create temp file for this segment
-#         with tempfile.NamedTemporaryFile(suffix='.wav') as tmpfile:
-#             sf.write(tmpfile.name, segment, sr)
-#             amae_embedding = mae_u.compute_audio_embeddings(
-#                 tmpfile.name,
-#                 audio_inits,
-#                 "audiomae",
-#                 device,
-#                 max_segs=1
-#             )
-#             # Remove batch dimension and convert to numpy
-#             track_features.append(amae_embedding.squeeze(0).cpu().numpy())
-
-#     return np.stack(track_features)
 
 
 
