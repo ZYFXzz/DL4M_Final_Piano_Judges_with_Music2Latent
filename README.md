@@ -65,8 +65,14 @@ Explain how to use the model. Show a few examples in your `demo.ipynb`.
   journal={arXiv preprint arXiv:2408.06500},
   year={2024}
 }
-
-
+@article{huang2022masked,
+  title={Masked autoencoders that listen},
+  author={Huang, Po-Yao and Xu, Hu and Li, Juncheng and Baevski, Alexei and Auli, Michael and Galuba, Wojciech and Metze, Florian and Feichtenhofer, Christoph},
+  journal={Advances in Neural Information Processing Systems},
+  volume={35},
+  pages={28708--28720},
+  year={2022}
+}
 ```
 
 You __must__ include references to any papers or GitHub repositories which you used when working on your project.
@@ -74,3 +80,10 @@ You __must__ include references to any papers or GitHub repositories which you u
 If you borrowed code from another GitHub repository, you __must__ clearly write in your comments what is outsourced (and from where) and what is your own.
 
 Failure to properly credit external sources constitutes plagarism.
+
+## Work
+
+Michael: Implementing Music2Latent, retrieving embeddings, and group organization
+Nick: AudioMAE implementation and embedding retreival, t-SNE/PCA plot generation
+Haochen: Classifier model (MLP) implementation, slide deck creation
+Jingkai: Spectrogram baseline implementation and embedding retrieval
