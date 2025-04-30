@@ -84,6 +84,9 @@ Failure to properly credit external sources constitutes plagarism.
 ## Work
 
 Michael: Implementing Music2Latent, retrieving embeddings, and group organization
+
 Nick: AudioMAE implementation and embedding retreival, t-SNE/PCA plot generation
+
 Haochen: Classifier model (MLP) implementation, slide deck creation
+
 Jingkai: Spectrogram baseline implementation and embedding retrieval
