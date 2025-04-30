@@ -7,7 +7,10 @@ from typing import Dict, Any, Optional
 from dataclasses import dataclass
 from einops import repeat
 
-
+''' 
+This file contains helper classes
+from the original PianoJudges codebase.
+'''
 class ConvBlock(nn.Module):
     def __init__(
         self,

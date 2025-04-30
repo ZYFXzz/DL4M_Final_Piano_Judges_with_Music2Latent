@@ -53,6 +53,7 @@ LABEL_COLUMNS = [
 N_MELS = 128  # 64 - 128
 HOP_LENGTH = 160
 
+# These are custom data helper utilities for our specific dataloading case. 
 
 def filter_single_label_tracks(dataloader):
     filtered_metadata = []

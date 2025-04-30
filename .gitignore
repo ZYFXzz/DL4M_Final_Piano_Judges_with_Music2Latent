@@ -10,6 +10,7 @@ __pycache__/
 # Ignore PyTorch Lightning logs and checkpoints
 lightning_logs/
 checkpoints/
+computed_features/
 
 # Ignore system files
 .DS_Store
